@@ -1,0 +1,56 @@
+# /home/pi/Desktop/test3.py
+### BEGIN INIT INFO
+# Provides:          sample.py
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start daemon at boot time
+# Description:       Enable service provided by daemon.
+### END INIT INFO
+
+from sense_hat import SenseHat
+import paho.mqtt.client as mqtt
+import psutil
+import json
+import time
+
+sense=SenseHat()
+
+MQTT_server="mqtt.beia-telemetrie.ro"
+MQTT_port=1883
+green = (0, 255, 0)
+
+def main():
+    client=mqtt.Client()
+    client.connect(MQTT_server,MQTT_port,60)
+    
+    while True:
+
+        t = sense.get_temperature()
+        p = sense.get_pressure()
+        h = sense.get_humidity()
+        t = round(t,2)
+        p = round(p,2)
+        h = round(h,2)
+        message = "Temperature: " + str(t) + " Pressure: " + str(p) 
+
+        topic='/training/raspberrypi/vlad-anca'
+        mem=psutil.virtual_memory()
+        data={'temperature':t,
+              'pressure':p,
+              'humidity':h
+             }
+        payload=json.dumps(data)
+        print("Topic: {0}".format(topic))
+        print("Payload:{0}".format(payload))
+        client.publish(topic,payload=payload,qos=1)
+        #sense.show_message(message, scroll_speed=0.05, back_colour=green)
+        time.sleep(5)
+        client.disconnect()
+        time.sleep(2)
+        client.connect(MQTT_server, MQTT_port, 60)
+    
+if __name__=='__main__':
+    main()
+
